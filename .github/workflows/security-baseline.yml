@@ -9,9 +9,6 @@ permissions:
   contents: read
   security-events: write
 
-env:
-  CHECKOV_VERSION: "3.3.9"
-
 jobs:
   terraform:
     name: terraform (${{ matrix.cloud }})
@@ -64,9 +61,14 @@ jobs:
         with:
           python-version: "3.12"
           cache: pip
+          # setup-python's pip cache hard-requires a requirements file to
+          # hash for its cache key — without one it errors out entirely
+          # (not just "skips caching"), which cascaded into every later
+          # step failing on a real CI run before this was caught.
+          cache-dependency-path: requirements.txt
 
       - name: Install Checkov
-        run: pip install "checkov==${CHECKOV_VERSION}"
+        run: pip install -r requirements.txt
 
       - name: Scan hardened baseline (hard-fail — this is the real gate)
         run: ./scripts/scan.sh "$CLOUD" baseline
