@@ -1,0 +1,14 @@
+# Copy this to backend.tf (or add the block to versions.tf) to use a real
+# remote backend instead of local state. Not loaded by default — local state
+# keeps the credential-free `terraform init -backend=false` path the default
+# for anyone cloning this repo.
+#
+# terraform {
+#   backend "s3" {
+#     bucket         = "your-terraform-state-bucket"
+#     key            = "multi-cloud-security-baseline/aws/terraform.tfstate"
+#     region         = "us-east-1"
+#     dynamodb_table = "your-terraform-locks-table"
+#     encrypt        = true
+#   }
+# }

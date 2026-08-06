@@ -1,0 +1,11 @@
+# Hardened baseline config — modules/ and live/, scanned via scripts/scan.sh.
+# Directories are passed on the CLI (per-cloud), not listed here, so this
+# file stays reusable for both the aws and gcp matrix jobs.
+framework:
+  - terraform
+compact: true
+download-external-modules: false
+# No skip-check list: every genuinely out-of-scope finding in modules/ and
+# live/ is suppressed with a resource-scoped, justified inline
+# #checkov:skip=... comment instead of a blanket config-level skip. See each
+# module's main.tf for the specific justifications.

@@ -1,0 +1,33 @@
+# Terraform
+**/.terraform/*
+.terraform.tfstate.lock.info
+*.tfstate
+*.tfstate.*
+crash.log
+crash.*.log
+*.tfvars
+!ci.tfvars
+!*.tfvars.example
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+.terraformrc
+terraform.rc
+
+# Keep the lock file for reproducible provider pinning
+!.terraform.lock.hcl
+
+# Fake credentials generated at CI/local runtime — never commit real or fake keys
+**/fake-gcp-credentials.json
+*.pem
+
+# Checkov / scan output
+insecure-scan-results/
+checkov_ids.txt
+
+# OS / editor cruft
+.DS_Store
+*.swp
+.vscode/
+.idea/

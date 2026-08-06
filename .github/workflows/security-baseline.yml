@@ -1,0 +1,89 @@
+name: security-baseline
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+  security-events: write
+
+env:
+  CHECKOV_VERSION: "3.3.9"
+
+jobs:
+  terraform:
+    name: terraform (${{ matrix.cloud }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        cloud: [aws, gcp]
+    env:
+      CLOUD: ${{ matrix.cloud }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_wrapper: false
+
+      - name: Cache Terraform plugins
+        uses: actions/cache@v4
+        with:
+          # Must match TF_PLUGIN_CACHE_DIR below exactly — the cache step
+          # and the env var it feeds have to agree on one path, or the cache
+          # silently does nothing (this exact mismatch was caught in local
+          # testing before it reached CI).
+          path: ${{ github.workspace }}/.terraform.d/plugin-cache
+          key: tf-plugins-${{ matrix.cloud }}-${{ hashFiles(format('live/{0}/.terraform.lock.hcl', matrix.cloud)) }}
+          restore-keys: |
+            tf-plugins-${{ matrix.cloud }}-
+
+      - name: terraform init/validate/plan (credential-free)
+        env:
+          TF_PLUGIN_CACHE_DIR: ${{ github.workspace }}/.terraform.d/plugin-cache
+        run: |
+          mkdir -p "$TF_PLUGIN_CACHE_DIR"
+          ./scripts/validate.sh "$CLOUD"
+
+  checkov:
+    name: checkov (${{ matrix.cloud }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        cloud: [aws, gcp]
+    env:
+      CLOUD: ${{ matrix.cloud }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install Checkov
+        run: pip install "checkov==${CHECKOV_VERSION}"
+
+      - name: Scan hardened baseline (hard-fail — this is the real gate)
+        run: ./scripts/scan.sh "$CLOUD" baseline
+
+      - name: Scan insecure example (soft-fail — demo only, never blocks the build)
+        if: always()
+        run: ./scripts/scan.sh "$CLOUD" insecure --sarif "insecure-scan-results/$CLOUD"
+
+      - name: Publish findings summary
+        if: always()
+        env:
+          RESULTS_PATH: insecure-scan-results/${{ matrix.cloud }}/results_json.json
+        run: python3 scripts/checkov_summary.py >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload SARIF to the Security tab
+        if: always()
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: insecure-scan-results/${{ matrix.cloud }}/results_sarif.sarif
+          category: checkov-insecure-example-${{ matrix.cloud }}

@@ -1,0 +1,9 @@
+# Insecure-example demo config — examples/insecure/, scanned via
+# scripts/scan.sh. soft-fail so this scan never fails the build; it exists
+# to surface findings, not gate anything. No skip-check list: it should
+# trip everything it can.
+framework:
+  - terraform
+compact: true
+download-external-modules: false
+soft-fail: true
